@@ -1,0 +1,24 @@
+{
+  "type": "json_schema",
+  "json_schema": {
+    "name": "object",
+    "strict": true,
+    "schema": {
+      "type": "object",
+      "properties": {
+        "age": {
+          "type": "int",
+          "description": "Age of the person",
+          "additionalProperties": false
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the person",
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "required": ["name", "age"]
+    }
+  }
+}
