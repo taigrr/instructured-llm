@@ -65,18 +65,12 @@ func (s TokenSplitter) splitText(text string, tk *tiktoken.Tiktoken) []string {
 	inputIDs := tk.Encode(text, s.AllowedSpecial, s.DisallowedSpecial)
 
 	startIdx := 0
-	curIdx := len(inputIDs)
-	if startIdx+s.ChunkSize < curIdx {
-		curIdx = startIdx + s.ChunkSize
-	}
+	curIdx := min(startIdx+s.ChunkSize, len(inputIDs))
 	for startIdx < len(inputIDs) {
 		chunkIDs := inputIDs[startIdx:curIdx]
 		splits = append(splits, tk.Decode(chunkIDs))
 		startIdx += s.ChunkSize - s.ChunkOverlap
-		curIdx = startIdx + s.ChunkSize
-		if curIdx > len(inputIDs) {
-			curIdx = len(inputIDs)
-		}
+		curIdx = min(startIdx+s.ChunkSize, len(inputIDs))
 	}
 	return splits
 }

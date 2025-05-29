@@ -3,6 +3,7 @@ package chains
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/schema"
@@ -148,7 +149,7 @@ func (c ConversationalRetrievalQA) GetInputKeys() []string {
 }
 
 func (c ConversationalRetrievalQA) GetOutputKeys() []string {
-	outputKeys := append([]string{}, c.CombineDocumentsChain.GetOutputKeys()...)
+	outputKeys := slices.Clone(c.CombineDocumentsChain.GetOutputKeys())
 	if c.ReturnSourceDocuments {
 		outputKeys = append(outputKeys, _conversationalRetrievalQADefaultSourceDocumentKey)
 	}

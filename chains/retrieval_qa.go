@@ -7,6 +7,7 @@ import (
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/memory"
 	"github.com/tmc/langchaingo/schema"
+	"slices"
 )
 
 const (
@@ -94,7 +95,7 @@ func (c RetrievalQA) GetInputKeys() []string {
 }
 
 func (c RetrievalQA) GetOutputKeys() []string {
-	outputKeys := append([]string{}, c.CombineDocumentsChain.GetOutputKeys()...)
+	outputKeys := slices.Clone(c.CombineDocumentsChain.GetOutputKeys())
 	if c.ReturnSourceDocuments {
 		outputKeys = append(outputKeys, _retrievalQADefaultSourceDocumentKey)
 	}

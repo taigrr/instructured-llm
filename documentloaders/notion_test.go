@@ -27,7 +27,7 @@ func TestNotionDirectoryLoader_Load(t *testing.T) {
 			content: "# Test Document 1\nThis is test document 1.",
 			expected: schema.Document{
 				PageContent: "# Test Document 1\nThis is test document 1.",
-				Metadata:    map[string]interface{}{"source": filepath.Join(tempDir, "test1.md")},
+				Metadata:    map[string]any{"source": filepath.Join(tempDir, "test1.md")},
 			},
 		},
 		{
@@ -35,7 +35,7 @@ func TestNotionDirectoryLoader_Load(t *testing.T) {
 			content: "# Test Document 2\nThis is test document 2.",
 			expected: schema.Document{
 				PageContent: "# Test Document 2\nThis is test document 2.",
-				Metadata:    map[string]interface{}{"source": filepath.Join(tempDir, "test2.md")},
+				Metadata:    map[string]any{"source": filepath.Join(tempDir, "test2.md")},
 			},
 		},
 	}

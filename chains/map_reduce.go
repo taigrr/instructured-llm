@@ -116,7 +116,7 @@ func (c MapReduceDocuments) mapResultsToReduceInputs(
 	inputValues map[string]any,
 ) (map[string]any, error) {
 	resultDocs := make([]schema.Document, 0, len(docs))
-	for i := 0; i < len(docs); i++ {
+	for i := range docs {
 		curResult, ok := mapResults[i][c.LLMChain.OutputKey].(string)
 		if !ok {
 			return nil, ErrInvalidOutputValues

@@ -139,7 +139,7 @@ func GetInputValue(inputValues map[string]any, inputKey string) (string, error) 
 }
 
 func getInputValueReturnToString(
-	inputValue interface{},
+	inputValue any,
 ) (string, error) {
 	switch value := inputValue.(type) {
 	case string:

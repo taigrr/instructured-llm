@@ -77,7 +77,7 @@ func MaybeRemoveNewLines(texts []string, removeNewLines bool) []string {
 		return texts
 	}
 
-	for i := 0; i < len(texts); i++ {
+	for i := range texts {
 		texts[i] = strings.ReplaceAll(texts[i], "\n", " ")
 	}
 

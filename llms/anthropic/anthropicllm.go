@@ -302,7 +302,7 @@ func handleHumanMessage(msg llms.MessageContent) (anthropicclient.ChatMessage, e
 
 func handleAIMessage(msg llms.MessageContent) (anthropicclient.ChatMessage, error) {
 	if toolCall, ok := msg.Parts[0].(llms.ToolCall); ok {
-		var inputStruct map[string]interface{}
+		var inputStruct map[string]any
 		err := json.Unmarshal([]byte(toolCall.FunctionCall.Arguments), &inputStruct)
 		if err != nil {
 			return anthropicclient.ChatMessage{}, fmt.Errorf("anthropic: failed to unmarshal tool call arguments: %w", err)

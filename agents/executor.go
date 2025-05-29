@@ -58,7 +58,7 @@ func (e *Executor) Call(ctx context.Context, inputValues map[string]any, _ ...ch
 	steps := make([]schema.AgentStep, 0)
 	var intermediateMessages []llms.ChatMessage
 	var err error
-	for i := 0; i < e.MaxIterations; i++ {
+	for range e.MaxIterations {
 		var finish map[string]any
 		steps, finish, intermediateMessages, err = e.doIteration(ctx, steps, nameToTool, inputValues, intermediateMessages)
 		if finish != nil || err != nil {

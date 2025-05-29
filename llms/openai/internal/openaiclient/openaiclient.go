@@ -122,7 +122,7 @@ func (c *Client) CreateEmbedding(ctx context.Context, r *EmbeddingRequest) ([][]
 	}
 
 	embeddings := make([][]float32, 0)
-	for i := 0; i < len(resp.Data); i++ {
+	for i := range resp.Data {
 		embeddings = append(embeddings, resp.Data[i].Embedding)
 	}
 

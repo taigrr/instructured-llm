@@ -80,7 +80,7 @@ func TestApply(t *testing.T) {
 	numInputs := 10
 	maxWorkers := 5
 	inputs := make([]map[string]any, numInputs)
-	for i := 0; i < len(inputs); i++ {
+	for i := range inputs {
 		inputs[i] = map[string]any{
 			"text": strconv.Itoa(i),
 		}

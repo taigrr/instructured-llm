@@ -358,7 +358,7 @@ type ConstitutionalPrinciple struct {
 }
 
 type Pair struct {
-	first, second interface{}
+	first, second any
 }
 
 type ConstitutionalExample struct {

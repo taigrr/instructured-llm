@@ -6,6 +6,7 @@ import (
 
 	"github.com/tmc/langchaingo/memory"
 	"github.com/tmc/langchaingo/schema"
+	"slices"
 )
 
 const (
@@ -80,7 +81,7 @@ func (c StuffDocuments) GetInputKeys() []string {
 
 // GetOutputKeys returns the output keys the chain will return.
 func (c StuffDocuments) GetOutputKeys() []string {
-	return append([]string{}, c.LLMChain.GetOutputKeys()...)
+	return slices.Clone(c.LLMChain.GetOutputKeys())
 }
 
 // joinDocuments joins the documents with the separator.

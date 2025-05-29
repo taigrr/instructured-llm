@@ -21,7 +21,7 @@ func CombineVectors(vectors [][]float32, weights []int) ([]float32, error) {
 	}
 
 	averageNorm := getNorm(average)
-	for i := 0; i < len(average); i++ {
+	for i := range average {
 		average[i] /= averageNorm
 	}
 
@@ -60,13 +60,13 @@ func getAverage(vectors [][]float32, weights []int) ([]float32, error) {
 	}
 
 	average := make([]float32, vectorLen)
-	for i := 0; i < vectorLen; i++ {
-		for j := 0; j < len(vectors); j++ {
+	for i := range vectorLen {
+		for j := range vectors {
 			average[i] += vectors[j][i] * float32(weights[j])
 		}
 	}
 
-	for i := 0; i < len(average); i++ {
+	for i := range average {
 		average[i] /= float32(weightSum)
 	}
 
@@ -75,7 +75,7 @@ func getAverage(vectors [][]float32, weights []int) ([]float32, error) {
 
 func getNorm(v []float32) float32 {
 	var sum float32
-	for i := 0; i < len(v); i++ {
+	for i := range v {
 		sum += v[i] * v[i]
 	}
 

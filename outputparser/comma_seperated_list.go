@@ -27,7 +27,7 @@ func (p CommaSeparatedList) GetFormatInstructions() string {
 // Parse parses the output of an LLM into a string slice.
 func (p CommaSeparatedList) Parse(text string) ([]string, error) {
 	values := strings.Split(strings.TrimSpace(text), ",")
-	for i := 0; i < len(values); i++ {
+	for i := range values {
 		values[i] = strings.TrimSpace(values[i])
 	}
 

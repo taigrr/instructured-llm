@@ -28,10 +28,10 @@ type CompletionResponse struct {
 	ID      string  `json:"id,omitempty"`
 	Created float64 `json:"created,omitempty"`
 	Choices []struct {
-		FinishReason string      `json:"finish_reason,omitempty"`
-		Index        float64     `json:"index,omitempty"`
-		Logprobs     interface{} `json:"logprobs,omitempty"`
-		Text         string      `json:"text,omitempty"`
+		FinishReason string  `json:"finish_reason,omitempty"`
+		Index        float64 `json:"index,omitempty"`
+		Logprobs     any     `json:"logprobs,omitempty"`
+		Text         string  `json:"text,omitempty"`
 	} `json:"choices,omitempty"`
 	Model  string `json:"model,omitempty"`
 	Object string `json:"object,omitempty"`

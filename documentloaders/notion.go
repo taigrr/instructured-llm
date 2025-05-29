@@ -49,7 +49,7 @@ func (n *NotionDirectoryLoader) Load() ([]schema.Document, error) {
 			return nil, err
 		}
 
-		metadata := map[string]interface{}{"source": filePath}
+		metadata := map[string]any{"source": filePath}
 		documents = append(documents, schema.Document{PageContent: string(text), Metadata: metadata})
 	}
 

@@ -59,7 +59,7 @@ func (h *SqliteChatMessageHistory) Messages(ctx context.Context) ([]llms.ChatMes
 	var msgs []llms.ChatMessage
 	for res.Next() {
 		var content, msgtype string
-		var created interface{}
+		var created any
 
 		if err = res.Scan(&content, &msgtype, &created); err != nil {
 			return nil, err
@@ -145,7 +145,7 @@ func (h *SqliteChatMessageHistory) SetMessages(ctx context.Context, messages []l
 	buf.WriteString(" (session, content, type) VALUES ")
 
 	inputs := make([]string, len(messages))
-	values := []interface{}{h.Session}
+	values := []any{h.Session}
 
 	for i, msg := range messages {
 		inputs[i] = "(?, ?, ?)"

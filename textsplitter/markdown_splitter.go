@@ -810,7 +810,7 @@ func indexOfCloseTag(tokens []markdown.Token, startAt int) int {
 // repeatString repeats the initChar for count times.
 func repeatString(count int, initChar string) string {
 	var s string
-	for i := 0; i < count; i++ {
+	for range count {
 		s += initChar
 	}
 	return s
@@ -831,7 +831,7 @@ func tableHeaderInMarkdown(header []string) string {
 
 	// add separator
 	var separators []string
-	for i := 0; i < len(header); i++ {
+	for range header {
 		separators = append(separators, "---")
 	}
 

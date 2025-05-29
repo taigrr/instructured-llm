@@ -175,14 +175,14 @@ func (bc BinaryContent) MarshalJSON() ([]byte, error) {
 }
 
 func (bc *BinaryContent) UnmarshalJSON(data []byte) error {
-	var m map[string]interface{}
+	var m map[string]any
 	if err := json.Unmarshal(data, &m); err != nil {
 		return err
 	}
 	if m["type"] != "binary" {
 		return fmt.Errorf("invalid type for BinaryContent: %v", m["type"])
 	}
-	binary, ok := m["binary"].(map[string]interface{})
+	binary, ok := m["binary"].(map[string]any)
 	if !ok {
 		return fmt.Errorf("invalid binary field in BinaryContent")
 	}

@@ -115,7 +115,7 @@ func (h *ChatMessageHistory) AddMessage(ctx context.Context, message llms.ChatMe
 
 // SetMessages replaces existing messages in the store.
 func (h *ChatMessageHistory) SetMessages(ctx context.Context, messages []llms.ChatMessage) error {
-	_messages := []interface{}{}
+	_messages := []any{}
 	for _, message := range messages {
 		_message, err := json.Marshal(llms.ConvertChatMessageToModel(message))
 		if err != nil {

@@ -20,7 +20,7 @@ var (
 )
 
 type pair struct {
-	first, second interface{}
+	first, second any
 }
 
 // ConstitutionalPrinciple provides critiqueRequest and revisionRequest to be used in a Constitutional instance.

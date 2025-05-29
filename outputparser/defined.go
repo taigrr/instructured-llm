@@ -92,7 +92,7 @@ func marshalStruct(vType reflect.Type, name string) ([]byte, error) { // nolint:
 	b.WriteString(name)
 	b.WriteString(" {\n")
 	moreStructs := make([][]byte, 0, numStructs)
-	for i := 0; i < vType.NumField(); i++ {
+	for i := range vType.NumField() {
 		field := vType.Field(i)
 		b.WriteString("\t")
 		name := field.Tag.Get("json")
