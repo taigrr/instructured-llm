@@ -36,7 +36,7 @@ func (t *logTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 			reqCopy.Header.Add(header, "REDACTED")
 		}
 	}
-	dump, err := httputil.DumpRequestOut(req, true)
+	dump, err := httputil.DumpRequestOut(reqCopy, true)
 	if err != nil {
 		return nil, err
 	}
