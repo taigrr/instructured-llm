@@ -28,19 +28,21 @@ type logTransport struct {
 // RoundTrip logs the request and response with full contents using httputil.DumpRequest and httputil.DumpResponse.
 func (t *logTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Remove headers that are in the ignore list
-	reqCopy := req.Clone(req.Context())
+	reqHeaders := req.Header.Clone()
 	for _, header := range t.ignoreList {
-		found := reqCopy.Header.Get(header) != ""
-		reqCopy.Header.Del(header)
+		found := req.Header.Get(header) != ""
+		req.Header.Del(header)
 		if found {
-			reqCopy.Header.Add(header, "REDACTED")
+			req.Header.Add(header, "REDACTED")
 		}
 	}
-	dump, err := httputil.DumpRequestOut(reqCopy, true)
+	dump, err := httputil.DumpRequestOut(req, true)
 	if err != nil {
 		return nil, err
 	}
 	fmt.Println(string(dump)) //nolint:forbidigo
+	req.Header = reqHeaders   // Restore original headers for the request
+
 	resp, err := t.Transport.RoundTrip(req)
 	if err != nil {
 		return nil, err
