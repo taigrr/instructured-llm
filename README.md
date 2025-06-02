@@ -13,7 +13,7 @@
 ## 🤔 What is this?
 
 This is the Go language implementation of [LangChain](https://github.com/langchain-ai/langchain).
-This repo started as a fork of [tmc/langchain-go](https://github.com/tmc/langchain-go), but has begun to diverge now that the repo there is seeing less activitity and maintenance.
+This repo started as a fork of [tmc/langchaingo](https://github.com/tmc/langchaingo), but has begun to diverge now that the repo there is seeing less activitity and maintenance.
 The name `instructured-llm` is derived from one of the new features added post-fork, allowing for programmatic, automatic creation of structured-json output inside of regular structs using reflection.
 
 ## 📖 Documentation
