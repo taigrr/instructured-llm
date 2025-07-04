@@ -74,6 +74,9 @@ func structToOAIRespFormat(input any) *openai.ResponseFormatJSONSchemaProperty {
 		prop.Items = structToOAIRespFormat(itemInstance.Interface())
 	} else {
 		prop.Type = reflect.TypeOf(input).Kind().String()
+		if prop.Type == "bool" {
+			prop.Type = "boolean"
+		}
 	}
 	return &prop
 }
