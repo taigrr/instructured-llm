@@ -223,99 +223,130 @@ func (o *OpenAIFunctionsAgent) constructScratchPad(steps []schema.AgentStep) []l
 func (o *OpenAIFunctionsAgent) ParseOutput(contentResp *llms.ContentResponse) (
 	[]schema.AgentAction, *schema.AgentFinish, error,
 ) {
-	choice := contentResp.Choices[0]
-
-	// Check for new-style tool calls first
-	if len(choice.ToolCalls) > 0 {
-		toolCall := choice.ToolCalls[0]
-		functionName := toolCall.FunctionCall.Name
-		toolInputStr := toolCall.FunctionCall.Arguments
-		toolInputMap := make(map[string]any, 0)
-		err := json.Unmarshal([]byte(toolInputStr), &toolInputMap)
-		if err != nil {
-			// If it's not valid JSON, it might be a raw expression for the calculator
-			// Try to use it directly as tool input
-			return []schema.AgentAction{
-				{
-					Tool:      functionName,
-					ToolInput: toolInputStr,
-					Log:       fmt.Sprintf("Invoking: %s with %s\n", functionName, toolInputStr),
-					ToolID:    toolCall.ID,
-				},
-			}, nil, nil
-		}
-
-		toolInput := toolInputStr
-		if arg1, ok := toolInputMap["__arg1"]; ok {
-			toolInputCheck, ok := arg1.(string)
-			if ok {
-				toolInput = toolInputCheck
-			}
-		}
-
-		contentMsg := "\n"
-		if choice.Content != "" {
-			contentMsg = fmt.Sprintf("responded: %s\n", choice.Content)
-		}
-
-		return []schema.AgentAction{
-			{
-				Tool:      functionName,
-				ToolInput: toolInput,
-				Log:       fmt.Sprintf("Invoking: %s with %s \n %s \n", functionName, toolInputStr, contentMsg),
-				ToolID:    toolCall.ID,
+	// Defensive checks to prevent panics
+	if contentResp == nil {
+		return nil, &schema.AgentFinish{
+			ReturnValues: map[string]any{
+				"output": "",
 			},
-		}, nil, nil
+			Log: "No response received",
+		}, nil
 	}
 
-	// Check for legacy function call
-	if choice.FuncCall != nil {
-		functionCall := choice.FuncCall
-		functionName := functionCall.Name
-		toolInputStr := functionCall.Arguments
-		toolInputMap := make(map[string]any, 0)
-		err := json.Unmarshal([]byte(toolInputStr), &toolInputMap)
-		if err != nil {
-			// If it's not valid JSON, it might be a raw expression for the calculator
-			// Try to use it directly as tool input
-			return []schema.AgentAction{
-				{
+	if len(contentResp.Choices) == 0 {
+		return nil, &schema.AgentFinish{
+			ReturnValues: map[string]any{
+				"output": "",
+			},
+			Log: "No choices in response",
+		}, nil
+	}
+
+	var allActions []schema.AgentAction
+	var finishContent string
+
+	// Iterate through all choices
+	for _, choice := range contentResp.Choices {
+		// Check for new-style tool calls first
+		if len(choice.ToolCalls) > 0 {
+			// Process all tool calls in this choice
+			for _, toolCall := range choice.ToolCalls {
+				if toolCall.FunctionCall == nil {
+					continue // Skip tool calls with nil function calls
+				}
+				functionName := toolCall.FunctionCall.Name
+				toolInputStr := toolCall.FunctionCall.Arguments
+				toolInputMap := make(map[string]any, 0)
+				err := json.Unmarshal([]byte(toolInputStr), &toolInputMap)
+				if err != nil {
+					// If it's not valid JSON, it might be a raw expression for the calculator
+					// Try to use it directly as tool input
+					allActions = append(allActions, schema.AgentAction{
+						Tool:      functionName,
+						ToolInput: toolInputStr,
+						Log:       fmt.Sprintf("Invoking: %s with %s\n", functionName, toolInputStr),
+						ToolID:    toolCall.ID,
+					})
+					continue
+				}
+
+				toolInput := toolInputStr
+				if arg1, ok := toolInputMap["__arg1"]; ok {
+					toolInputCheck, ok := arg1.(string)
+					if ok {
+						toolInput = toolInputCheck
+					}
+				}
+
+				contentMsg := "\n"
+				if choice.Content != "" {
+					contentMsg = fmt.Sprintf("responded: %s\n", choice.Content)
+				}
+
+				allActions = append(allActions, schema.AgentAction{
+					Tool:      functionName,
+					ToolInput: toolInput,
+					Log:       fmt.Sprintf("Invoking: %s with %s \n %s \n", functionName, toolInputStr, contentMsg),
+					ToolID:    toolCall.ID,
+				})
+			}
+		} else if choice.FuncCall != nil {
+			// Check for legacy function call
+			functionCall := choice.FuncCall
+			functionName := functionCall.Name
+			toolInputStr := functionCall.Arguments
+			toolInputMap := make(map[string]any, 0)
+			err := json.Unmarshal([]byte(toolInputStr), &toolInputMap)
+			if err != nil {
+				// If it's not valid JSON, it might be a raw expression for the calculator
+				// Try to use it directly as tool input
+				allActions = append(allActions, schema.AgentAction{
 					Tool:      functionName,
 					ToolInput: toolInputStr,
 					Log:       fmt.Sprintf("Invoking: %s with %s\n", functionName, toolInputStr),
 					ToolID:    "", // Legacy function calls don't have tool IDs
-				},
-			}, nil, nil
-		}
-
-		toolInput := toolInputStr
-		if arg1, ok := toolInputMap["__arg1"]; ok {
-			toolInputCheck, ok := arg1.(string)
-			if ok {
-				toolInput = toolInputCheck
+				})
+				continue
 			}
-		}
 
-		contentMsg := "\n"
-		if choice.Content != "" {
-			contentMsg = fmt.Sprintf("responded: %s\n", choice.Content)
-		}
+			toolInput := toolInputStr
+			if arg1, ok := toolInputMap["__arg1"]; ok {
+				toolInputCheck, ok := arg1.(string)
+				if ok {
+					toolInput = toolInputCheck
+				}
+			}
 
-		return []schema.AgentAction{
-			{
+			contentMsg := "\n"
+			if choice.Content != "" {
+				contentMsg = fmt.Sprintf("responded: %s\n", choice.Content)
+			}
+
+			allActions = append(allActions, schema.AgentAction{
 				Tool:      functionName,
 				ToolInput: toolInput,
 				Log:       fmt.Sprintf("Invoking: %s with %s \n %s \n", functionName, toolInputStr, contentMsg),
 				ToolID:    "", // Legacy function calls don't have tool IDs
-			},
-		}, nil, nil
+			})
+		} else {
+			// No function/tool call in this choice, accumulate content for potential finish
+			if finishContent != "" {
+				finishContent += "\n"
+			}
+			finishContent += choice.Content
+		}
 	}
 
-	// No function/tool call - this is a finish
+	// If we found any actions, return them
+	if len(allActions) > 0 {
+		return allActions, nil, nil
+	}
+
+	// No function/tool calls found - this is a finish
 	return nil, &schema.AgentFinish{
 		ReturnValues: map[string]any{
-			"output": choice.Content,
+			"output": finishContent,
 		},
-		Log: choice.Content,
+		Log: finishContent,
 	}, nil
 }
