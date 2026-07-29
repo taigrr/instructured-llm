@@ -265,6 +265,30 @@ type jsonDebugTransport struct {
 	Transport http.RoundTripper
 }
 
+// drainAndReplaceBody reads body fully, closes it, and returns the bytes
+// read along with a fresh io.ReadCloser the caller should assign back so
+// the body can still be consumed downstream.
+func drainAndReplaceBody(body io.ReadCloser, what string) ([]byte, io.ReadCloser, error) {
+	data, err := io.ReadAll(body)
+	closeErr := body.Close()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read %s body: %w", what, err)
+	}
+	if closeErr != nil {
+		return nil, nil, fmt.Errorf("failed to close %s body: %w", what, closeErr)
+	}
+	return data, io.NopCloser(bytes.NewReader(data)), nil
+}
+
+// printPrettyJSON pretty-prints body under the given color-coded label, if
+// it parses as JSON. Non-JSON bodies are silently skipped.
+func printPrettyJSON(color, label string, body []byte) {
+	var pretty bytes.Buffer
+	if json.Indent(&pretty, body, "", "  ") == nil {
+		fmt.Printf("%s\n%s\n", colorize(color, label), pretty.String()) //nolint:forbidigo
+	}
+}
+
 func (t *jsonDebugTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	transport := t.Transport
 	if transport == nil {
@@ -272,21 +296,12 @@ func (t *jsonDebugTransport) RoundTrip(req *http.Request) (*http.Response, error
 	}
 
 	if strings.Contains(req.Header.Get("Content-Type"), "application/json") && req.Body != nil {
-		origBody := req.Body
-		body, err := io.ReadAll(origBody)
-		closeErr := origBody.Close()
+		body, replacement, err := drainAndReplaceBody(req.Body, "request")
 		if err != nil {
-			return nil, fmt.Errorf("failed to read request body: %w", err)
+			return nil, err
 		}
-		if closeErr != nil {
-			return nil, fmt.Errorf("failed to close request body: %w", closeErr)
-		}
-		req.Body = io.NopCloser(bytes.NewReader(body))
-
-		var pretty bytes.Buffer
-		if json.Indent(&pretty, body, "", "  ") == nil {
-			fmt.Printf("%s\n%s\n", colorize(colorBlue, "Request to "+redactURL(req.URL)), pretty.String()) //nolint:forbidigo
-		}
+		req.Body = replacement
+		printPrettyJSON(colorBlue, "Request to "+redactURL(req.URL), body)
 	}
 
 	resp, err := transport.RoundTrip(req)
@@ -294,23 +309,13 @@ func (t *jsonDebugTransport) RoundTrip(req *http.Request) (*http.Response, error
 		return nil, err //nolint:wrapcheck
 	}
 
-	contentType := resp.Header.Get("Content-Type")
-	if strings.Contains(contentType, "application/json") && resp.Body != nil {
-		origBody := resp.Body
-		body, err := io.ReadAll(origBody)
-		closeErr := origBody.Close()
+	if strings.Contains(resp.Header.Get("Content-Type"), "application/json") && resp.Body != nil {
+		body, replacement, err := drainAndReplaceBody(resp.Body, "response")
 		if err != nil {
-			return nil, fmt.Errorf("failed to read response body: %w", err)
+			return nil, err
 		}
-		if closeErr != nil {
-			return nil, fmt.Errorf("failed to close response body: %w", closeErr)
-		}
-		resp.Body = io.NopCloser(bytes.NewReader(body))
-
-		var pretty bytes.Buffer
-		if json.Indent(&pretty, body, "", "  ") == nil {
-			fmt.Printf("%s\n%s\n", colorize(colorGreen, fmt.Sprintf("Response %d", resp.StatusCode)), pretty.String()) //nolint:forbidigo
-		}
+		resp.Body = replacement
+		printPrettyJSON(colorGreen, fmt.Sprintf("Response %d", resp.StatusCode), body)
 	}
 
 	return resp, nil

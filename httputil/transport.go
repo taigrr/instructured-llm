@@ -8,7 +8,7 @@ var (
 	// DefaultTransport is the default HTTP transport for this library.
 	// It wraps [http.DefaultTransport] and adds a User-Agent header containing
 	// the library version, program information, and system details.
-	DefaultTransport http.RoundTripper = &Transport{
+	DefaultTransport http.RoundTripper = &Transport{ //nolint:gochecknoglobals
 		Transport: http.DefaultTransport,
 	}
 
@@ -16,7 +16,7 @@ var (
 	// It uses [DefaultTransport] to automatically include proper User-Agent
 	// headers in all requests. This client is recommended for all HTTP
 	// operations unless custom transport behavior is required.
-	DefaultClient = &http.Client{
+	DefaultClient = &http.Client{ //nolint:gochecknoglobals
 		Transport: DefaultTransport,
 	}
 )
