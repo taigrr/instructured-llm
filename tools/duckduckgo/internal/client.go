@@ -15,9 +15,14 @@ import (
 var ErrNoGoodResult = errors.New("no good search results found")
 
 // Client defines an HTTP client for communicating with duckduckgo.
+//
+// SetHTTPClient is not synchronized: configure it (directly, or via
+// duckduckgo.WithHTTPClient) before making the Client available to
+// concurrent callers, not while Search may be running concurrently.
 type Client struct {
 	maxResults int
 	userAgent  string
+	httpClient *http.Client
 }
 
 // Result defines a search query result type.
@@ -37,7 +42,18 @@ func New(maxResults int, userAgent string) *Client {
 	return &Client{
 		maxResults: maxResults,
 		userAgent:  userAgent,
+		httpClient: http.DefaultClient,
 	}
+}
+
+// SetHTTPClient sets a custom HTTP client for the DuckDuckGo client. A nil
+// httpClient is a no-op: it leaves the previously configured client in
+// place instead of leaving the Client with no usable HTTP client at all.
+func (client *Client) SetHTTPClient(httpClient *http.Client) {
+	if httpClient == nil {
+		return
+	}
+	client.httpClient = httpClient
 }
 
 func (client *Client) newRequest(ctx context.Context, queryURL string) (*http.Request, error) {
@@ -63,7 +79,7 @@ func (client *Client) Search(ctx context.Context, query string) (string, error) 
 		return "", err
 	}
 
-	response, err := http.DefaultClient.Do(request)
+	response, err := client.httpClient.Do(request)
 	if err != nil {
 		return "", fmt.Errorf("get %s error: %w", queryURL, err)
 	}
