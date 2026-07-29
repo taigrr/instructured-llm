@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/tmc/langchaingo/callbacks"
 	"github.com/tmc/langchaingo/chains"
@@ -136,6 +137,12 @@ func (e *Executor) doAction(
 	agentStepStream := make(chan schema.AgentStepWithError)
 	go func() {
 		defer close(agentStepStream)
+
+		// Strip a hallucinated trailing "Observation:" line up front so
+		// the callback, the recorded AgentStep, and the tool call itself
+		// all agree on what input was actually used.
+		action.ToolInput = trimHallucinatedObservation(action.ToolInput)
+
 		if e.CallbacksHandler != nil {
 			e.CallbacksHandler.HandleAgentAction(ctx, action)
 		}
@@ -223,4 +230,25 @@ func getNameToTool(t []tools.Tool) map[string]tools.Tool {
 	}
 
 	return nameToTool
+}
+
+// hallucinatedObservationSuffixes lists the stop sequences the ReAct-style
+// agents (see mrkl.go, conversational.go) tell the LLM to stop generation
+// at. Some models still emit the start of the next turn before the stream
+// actually stops, so the tool input ends up polluted with a trailing
+// "Observation:" line; trimHallucinatedObservation strips it before the
+// input is handed to the tool.
+var hallucinatedObservationSuffixes = []string{ //nolint:gochecknoglobals
+	"\nObservation:",
+	"\n\tObservation:",
+}
+
+func trimHallucinatedObservation(input string) string {
+	trimmed := strings.TrimRightFunc(input, unicode.IsSpace)
+	for _, suffix := range hallucinatedObservationSuffixes {
+		if rest, ok := strings.CutSuffix(trimmed, suffix); ok {
+			return rest
+		}
+	}
+	return input
 }

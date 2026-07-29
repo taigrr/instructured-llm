@@ -53,6 +53,84 @@ func (a *testAgent) GetTools() []tools.Tool {
 	return nil
 }
 
+type recordingTool struct {
+	recordedInput string
+}
+
+func (t *recordingTool) Name() string        { return "recorder" }
+func (t *recordingTool) Description() string { return "records the input it receives" }
+
+func (t *recordingTool) Call(_ context.Context, input string) (string, error) {
+	t.recordedInput = input
+	return "ok", nil
+}
+
+// toolCallingAgent is a minimal Agent used to exercise Executor.doAction
+// through the public Executor.Call API.
+type toolCallingAgent struct {
+	tools     []tools.Tool
+	toolInput string
+}
+
+func (a *toolCallingAgent) Plan(
+	_ context.Context,
+	_ []schema.AgentStep,
+	_ map[string]any, _ []llms.ChatMessage,
+) ([]schema.AgentAction, *schema.AgentFinish, []llms.ChatMessage, error) {
+	return []schema.AgentAction{
+		{Tool: "recorder", ToolInput: a.toolInput},
+	}, nil, nil, nil
+}
+
+func (a *toolCallingAgent) GetInputKeys() []string  { return nil }
+func (a *toolCallingAgent) GetOutputKeys() []string { return []string{"output"} }
+func (a *toolCallingAgent) GetTools() []tools.Tool  { return a.tools }
+
+func TestExecutorTrimsHallucinatedObservationFromToolInput(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		toolIn   string
+		expected string
+	}{
+		{
+			name:     "no trailing Observation",
+			toolIn:   "do the thing",
+			expected: "do the thing",
+		},
+		{
+			name:     "trailing newline Observation",
+			toolIn:   "do the thing\nObservation:",
+			expected: "do the thing",
+		},
+		{
+			name:     "trailing tab-indented Observation",
+			toolIn:   "do the thing\n\tObservation:",
+			expected: "do the thing",
+		},
+		{
+			name:     "trailing Observation with extra whitespace",
+			toolIn:   "do the thing\nObservation: \n",
+			expected: "do the thing",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			tool := &recordingTool{}
+			a := &toolCallingAgent{tools: []tools.Tool{tool}, toolInput: tt.toolIn}
+			executor := agents.NewExecutor(a, agents.WithMaxIterations(1))
+
+			_, err := chains.Call(context.Background(), executor, nil)
+			require.ErrorIs(t, err, agents.ErrNotFinished)
+			require.Equal(t, tt.expected, tool.recordedInput)
+		})
+	}
+}
+
 func TestExecutorWithErrorHandler(t *testing.T) {
 	t.Parallel()
 

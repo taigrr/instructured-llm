@@ -203,7 +203,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.78.2
 	github.com/aws/smithy-go v1.22.2
 	github.com/cohere-ai/tokenizer v1.1.2
-	github.com/fatih/color v1.17.0
 	github.com/gage-technologies/mistral-go v1.1.0
 	github.com/getzep/zep-go v1.0.4
 	github.com/go-openapi/strfmt v0.21.3
