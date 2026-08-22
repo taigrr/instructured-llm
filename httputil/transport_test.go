@@ -1,6 +1,7 @@
 package httputil
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -66,7 +67,7 @@ func TestTransport_RoundTrip(t *testing.T) {
 			mock := &mockRoundTripper{}
 			transport := &Transport{Transport: mock}
 
-			req, err := http.NewRequest(http.MethodGet, "https://example.com", nil)
+			req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://example.com", nil)
 			require.NoError(t, err)
 
 			if tt.existingUA != "" {
@@ -75,7 +76,8 @@ func TestTransport_RoundTrip(t *testing.T) {
 
 			resp, err := transport.RoundTrip(req)
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
+			defer resp.Body.Close()
 
 			assert.True(t, tt.expectedUAFunc(mock.lastRequest.Header.Get("User-Agent")))
 
@@ -102,7 +104,10 @@ func TestTransport_NilTransport(t *testing.T) {
 	transport := &Transport{Transport: nil} // Should use http.DefaultTransport.
 	client := &http.Client{Transport: transport}
 
-	resp, err := client.Get(server.URL)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, server.URL, nil)
+	require.NoError(t, err)
+
+	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -133,7 +138,10 @@ func TestDefaultClient(t *testing.T) {
 	}))
 	defer server.Close()
 
-	resp, err := DefaultClient.Get(server.URL)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, server.URL, nil)
+	require.NoError(t, err)
+
+	resp, err := DefaultClient.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)

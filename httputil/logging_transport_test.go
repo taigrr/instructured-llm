@@ -2,6 +2,7 @@ package httputil
 
 import (
 	"bytes"
+	"context"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -50,7 +51,7 @@ func TestLoggingTransport_RedactsSensitiveHeaders(t *testing.T) {
 		Transport: &LoggingTransport{Logger: logger},
 	}
 
-	req, err := http.NewRequest(http.MethodGet, server.URL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, server.URL, nil)
 	require.NoError(t, err)
 	req.Header.Set("Authorization", "super-secret-token")
 
@@ -70,8 +71,7 @@ func TestLoggingTransport_RedactsSensitiveHeaders(t *testing.T) {
 func TestLoggingTransport_RedactsExtraHeaders(t *testing.T) {
 	t.Parallel()
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
 	}))
 	defer server.Close()
 
@@ -81,7 +81,7 @@ func TestLoggingTransport_RedactsExtraHeaders(t *testing.T) {
 	client := DebugHTTPClientSanitized("X-My-Secret")
 	client.Transport.(*Transport).Transport.(*LoggingTransport).Logger = logger //nolint:forcetypeassert
 
-	req, err := http.NewRequest(http.MethodGet, server.URL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, server.URL, nil)
 	require.NoError(t, err)
 	req.Header.Set("X-My-Secret", "sssh")
 
@@ -95,8 +95,7 @@ func TestLoggingTransport_RedactsExtraHeaders(t *testing.T) {
 func TestLoggingTransport_RedactsQueryParamCredentials(t *testing.T) {
 	t.Parallel()
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
 	}))
 	defer server.Close()
 
@@ -107,7 +106,11 @@ func TestLoggingTransport_RedactsQueryParamCredentials(t *testing.T) {
 		Transport: &LoggingTransport{Logger: logger},
 	}
 
-	resp, err := client.Get(server.URL + "/v1/generate?key=super-secret-api-key&q=hello")
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet,
+		server.URL+"/v1/generate?key=super-secret-api-key&q=hello", nil)
+	require.NoError(t, err)
+
+	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
@@ -120,8 +123,7 @@ func TestLoggingTransport_RedactsQueryParamCredentials(t *testing.T) {
 func TestLoggingTransport_SkipsDumpWhenDebugDisabled(t *testing.T) {
 	t.Parallel()
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
 	}))
 	defer server.Close()
 
@@ -132,7 +134,7 @@ func TestLoggingTransport_SkipsDumpWhenDebugDisabled(t *testing.T) {
 		Transport: &LoggingTransport{Logger: logger},
 	}
 
-	req, err := http.NewRequest(http.MethodGet, server.URL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, server.URL, nil)
 	require.NoError(t, err)
 	req.Header.Set("Authorization", "super-secret-token")
 
@@ -143,10 +145,10 @@ func TestLoggingTransport_SkipsDumpWhenDebugDisabled(t *testing.T) {
 	assert.Empty(t, buf.String(), "nothing should be dumped/logged when DEBUG level is disabled")
 }
 
-func TestJSONDebugTransport_RedactsQueryParamCredentialsInPrintedURL(t *testing.T) {
+func TestJSONDebugTransport_RedactsQueryParamCredentialsInPrintedURL(t *testing.T) { //nolint:paralleltest
 	// Swaps the process-wide os.Stdout, so this test cannot run in
 	// parallel with anything else that reads/writes it.
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"ok":true}`))
@@ -159,8 +161,8 @@ func TestJSONDebugTransport_RedactsQueryParamCredentialsInPrintedURL(t *testing.
 	os.Stdout = w
 
 	client := &http.Client{Transport: &jsonDebugTransport{}}
-	req, err := http.NewRequest(http.MethodPost, server.URL+"/v1/generate?key=super-secret-api-key",
-		strings.NewReader(`{"q":"hello"}`))
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost,
+		server.URL+"/v1/generate?key=super-secret-api-key", strings.NewReader(`{"q":"hello"}`))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
