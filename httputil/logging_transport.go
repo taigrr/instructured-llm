@@ -267,15 +267,14 @@ type jsonDebugTransport struct {
 
 // drainAndReplaceBody reads body fully, closes it, and returns the bytes
 // read along with a fresh io.ReadCloser the caller should assign back so
-// the body can still be consumed downstream.
+// the body can still be consumed downstream. A read error is fatal because
+// the body cannot be faithfully forwarded once it is only partially read; a
+// close error is not, since the full contents were already captured.
 func drainAndReplaceBody(body io.ReadCloser, what string) ([]byte, io.ReadCloser, error) {
 	data, err := io.ReadAll(body)
-	closeErr := body.Close()
+	_ = body.Close()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read %s body: %w", what, err)
-	}
-	if closeErr != nil {
-		return nil, nil, fmt.Errorf("failed to close %s body: %w", what, closeErr)
 	}
 	return data, io.NopCloser(bytes.NewReader(data)), nil
 }
